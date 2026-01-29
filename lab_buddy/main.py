@@ -8,6 +8,7 @@ import pandas as pd
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, Alignment
 import os
+import sys
 import json
 import threading
 import time
@@ -23,6 +24,14 @@ NORMAL_COLOR = "black"
 CACHE_FILE = "chemical_cache.json"
 CACHE_SIG_FILE = "chemical_cache.sig"
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 class PubChemScraperApp:
     def __init__(self, root):
         self.root = root
@@ -30,6 +39,10 @@ class PubChemScraperApp:
         self.root.geometry("1050x750")
         self.root.minsize(1350, 750)
         self.root.state("zoomed")
+        try:
+            self.root.iconbitmap(resource_path("ico.ico"))
+        except Exception:
+            pass
         self.excel_file = None
         self.current_data = None
         self.excel_frame_visible = False
@@ -38,10 +51,10 @@ class PubChemScraperApp:
         self.search_in_progress = False
         self.header_bg_image = None
         try:
-            img = Image.open("header_polymer.png")
+            img = Image.open(resource_path("header_polymer.png"))
             img = img.resize((1600, 70), Image.Resampling.LANCZOS)
             self.header_bg_image = ImageTk.PhotoImage(img)
-        except:
+        except Exception as e:
             pass
         self.suggestions = []
         self.suggestion_listbox = None
