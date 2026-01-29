@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from wsgiref import headers
 import requests
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 from io import BytesIO
 import pandas as pd
 from openpyxl import load_workbook, Workbook
@@ -39,6 +39,7 @@ class PubChemScraperApp:
         self.root.geometry("1050x750")
         self.root.minsize(1350, 750)
         self.root.state("zoomed")
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         try:
             self.root.iconbitmap(resource_path("ico.ico"))
         except Exception:
@@ -114,11 +115,34 @@ class PubChemScraperApp:
             if data.get("smiles"):
                 self.smiles_index[data["smiles"]] = key
 
+    def on_close(self):
+        if messagebox.askyesno(
+            "Exit LAB Buddy",
+            "Any unsaved data will be lost.\n\nDo you want to exit LAB Buddy?"
+        ):
+            self.root.destroy()
+
     def open_dev_profile(self, event=None):
         webbrowser.open_new(
             "https://www.linkedin.com/in/sufiyanabu/"
         )
     
+    def make_circular_image(self, img, size=180, border=6):
+        img = img.resize((size, size), Image.Resampling.LANCZOS).convert("RGBA")
+
+        # Create circular mask
+        mask = Image.new("L", (size, size), 0)
+        draw = ImageDraw.Draw(mask)
+        draw.ellipse((0, 0, size, size), fill=255)
+        img.putalpha(mask)
+
+        # Create black background for border
+        final_size = size + border * 2
+        background = Image.new("RGBA", (final_size, final_size), (0, 0, 0, 255))
+        background.paste(img, (border, border), img)
+
+        return background
+
     def cache_suggestions(self, query, limit=6):
         q = self.normalize_key(query)
         results = []
@@ -154,24 +178,55 @@ class PubChemScraperApp:
             bg="#3D91AD"
         ).pack(side="top", pady=(8, 0))
 
-        # Version / dev info
-        footer = tk.Label(
+        about_btn = tk.Button(
             header_frame,
-            text="VER: v1.0 @Dev: mdpatellabs",
-            font=("Segoe UI", 11, "bold"),
-            fg="#2981A9",
-            bg="#CED2D6",
-            cursor="hand2"
+            text="About",
+            font=("Segoe UI", 10, "bold"),
+            bg="#E6E6E6",
+            fg="#000000",
+            relief="raised",
+            bd=2,
+            highlightthickness=0,
+            activebackground="#DADADA",
+            activeforeground="#000000",
+            cursor="hand2",
+            command=self.open_about_window
         )
-        footer.grid(
+
+        about_btn.grid(
             row=0,
             column=0,
-            sticky="w",        
-            padx=(0, 15),
-            pady=(0, 10)
+            sticky="w",
+            padx=10,
+            pady=10
         )
-        footer.bind("<Button-1>", self.open_dev_profile)
-        # =============================================
+        about_btn.bind("<Enter>", lambda e: about_btn.config(bg="#DADADA"))
+        about_btn.bind("<Leave>", lambda e: about_btn.config(bg="#E6E6E6"))
+
+        help_btn = tk.Button(
+            header_frame,
+            text="Help",
+            font=("Segoe UI", 10, "bold"),
+            bg="#CED2D6",
+            fg="#000000",
+            relief="raised",
+            bd=2,
+            highlightthickness=0,
+            activebackground="#DADADA",
+            activeforeground="#000000",
+            cursor="hand2",
+            command=self.open_help_pdf
+        )
+
+        help_btn.grid(
+            row=0,
+            column=1,
+            sticky="e",
+            padx=10,
+            pady=10
+        )
+
+        header_frame.grid_columnconfigure(1, weight=1)
 
         main_frame = tk.Frame(self.root)
         main_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
@@ -630,6 +685,151 @@ class PubChemScraperApp:
             self.name_entry.insert(0, SEARCH_PLACEHOLDER)
             self.name_entry.config(fg=PLACEHOLDER_COLOR)
 
+    def open_about_window(self):
+        win = tk.Toplevel(self.root)
+        win.title("About LAB Buddy")
+        win.geometry("720x220")
+
+        win.update_idletasks()
+
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (win.winfo_width() // 2)
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (win.winfo_height() // 2)
+
+        win.geometry(f"+{x}+{y}")
+
+        win.resizable(False, False)
+        win.transient(self.root)
+        win.grab_set()
+
+        try:
+            win.iconbitmap(resource_path("ico.ico"))
+        except Exception:
+            pass
+
+        # Main container
+        container = tk.Frame(win, bg="#E6E6E6", padx=15, pady=15)
+        container.pack(fill="both", expand=True)
+
+        # ================= LEFT SIDE (IMAGE) =================
+        left = tk.Frame(container, bg="#E6E6E6")
+        left.pack(side="left", padx=(10, 25), pady=10)
+
+        try:
+            img = Image.open(resource_path("profile.png"))
+            circ_img = self.make_circular_image(img, size=180, border=6)
+            photo = ImageTk.PhotoImage(circ_img)
+
+            img_label = tk.Label(
+                left,
+                image=photo,
+                bg="#E6E6E6",
+                cursor="hand2"
+            )
+            img_label.image = photo
+            img_label.pack()
+
+            img_label.bind(
+                "<Button-1>",
+                lambda e: webbrowser.open_new(
+                    "https://www.linkedin.com/in/sufiyanabu/"
+                )
+            )
+        except:
+            tk.Label(
+                left,
+                text="Profile",
+                fg="white",
+                bg="black",
+                width=20,
+                height=10
+            ).pack()
+
+        # ================= RIGHT SIDE (TEXT) =================
+        right = tk.Frame(container, bg="#E6E6E6")
+        right.pack(side="left", fill="both", expand=True, pady=15)
+
+        def info_row(label, text, url=None, color="#0B5ED7"):
+            row = tk.Frame(right, bg="#E6E6E6")
+            row.pack(anchor="w", pady=10)
+
+            tk.Label(
+                row,
+                text=label,
+                font=("Segoe UI", 11, "bold"),
+                bg="#E6E6E6"
+            ).pack(side="left", padx=(0, 10))
+
+            link = tk.Label(
+                row,
+                text=text,
+                fg=color,
+                cursor="hand2" if url else "arrow",
+                font=("Segoe UI", 10, "underline" if url else "normal"),
+                bg="#E6E6E6"
+            )
+            link.pack(side="left")
+
+            if url:
+                link.bind("<Button-1>", lambda e: webbrowser.open_new(url))
+
+        # About Me
+        info_row(
+            "About Me:",
+            "linkedin.com/in/sufiyanabu",
+            "https://www.linkedin.com/in/sufiyanabu/",
+            color="#7A3E6C"
+        )
+
+        # Source
+        info_row(
+            "Source:",
+            "pubchem.ncbi.nlm.nih.gov",
+            "https://pubchem.ncbi.nlm.nih.gov"
+        )
+
+        # Version + GitHub
+        row = tk.Frame(right, bg="#E6E6E6")
+        row.pack(anchor="w", pady=10)
+
+        tk.Label(
+            row,
+            text="Version:",
+            font=("Segoe UI", 11, "bold"),
+            bg="#E6E6E6"
+        ).pack(side="left", padx=(0, 10))
+
+        tk.Label(
+            row,
+            text="v1.0.0",
+            font=("Segoe UI", 10),
+            bg="#E6E6E6"
+        ).pack(side="left", padx=(0, 15))
+
+        gh = tk.Label(
+            row,
+            text="github.com/MdAbusufiyan/lab-buddy",
+            fg="black",
+            cursor="hand2",
+            font=("Segoe UI", 10, "underline"),
+            bg="#E6E6E6"
+        )
+        gh.pack(side="left")
+        gh.bind(
+            "<Button-1>",
+            lambda e: webbrowser.open_new(
+                "https://github.com/MdAbusufiyan/lab-buddy"
+            )
+        )
+
+        # Close button (bottom-right)
+        close_btn = tk.Button(
+            container,
+            text="Close",
+            width=10,
+            command=win.destroy
+        )
+        close_btn.pack(side="bottom", anchor="e", pady=(10, 0))
+
     def copy_image_to_clipboard_url(self):
         if not self.current_data:
             messagebox.showwarning(
@@ -704,6 +904,12 @@ class PubChemScraperApp:
 
     def prompt_column_selection(self):
         win = tk.Toplevel(self.root)
+        win.title("Select Excel Columns")
+
+        try:
+            win.iconbitmap(resource_path("ico.ico"))
+        except:
+            pass
         win.title("Select Excel Columns")
         win.geometry("400x400")
         win.resizable(False, False)
@@ -783,6 +989,16 @@ class PubChemScraperApp:
                 daemon=True
             ).start()
     
+    def open_help_pdf(self):
+        try:
+            pdf_path = resource_path("LAB_Buddy_Help.pdf")
+            os.startfile(pdf_path)  # Windows default PDF viewer
+        except Exception:
+            messagebox.showerror(
+                "Help",
+                "Help guide could not be opened."
+            )
+
     def toggle_excel_frame(self):
         if self.excel_frame_visible:
             self.excel_frame.pack_forget()
