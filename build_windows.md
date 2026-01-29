@@ -10,3 +10,15 @@ It is intended for maintainers and reviewers.
 
 ## Dependencies
 Install dependencies before building:
+
+## Build Command
+From the repository root:
+
+## Output
+- The compiled executable is generated in the `dist/` directory.
+- The executable is distributed via GitHub Releases.
+- The executable is not committed to the repository.
+
+## Notes
+- Tkinter is bundled with Python and does not require separate installation.
+- The build process does not include auto-update functionality.
