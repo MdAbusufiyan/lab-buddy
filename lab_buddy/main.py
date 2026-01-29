@@ -17,12 +17,34 @@ import re
 from openpyxl.utils import get_column_letter
 import hashlib
 
+def get_app_data_dir():
+    base = os.getenv("LOCALAPPDATA") or os.path.expanduser("~")
+    path = os.path.join(base, "LabBuddy", "backend")
+    os.makedirs(path, exist_ok=True)
+    return path
 
 SEARCH_PLACEHOLDER = "Use me for search…"
 PLACEHOLDER_COLOR = "gray"
 NORMAL_COLOR = "black"
-CACHE_FILE = "chemical_cache.json"
-CACHE_SIG_FILE = "chemical_cache.sig"
+APP_DATA_DIR = get_app_data_dir()
+
+CACHE_FILE = os.path.join(APP_DATA_DIR, "chemical_cache.json")
+CACHE_SIG_FILE = os.path.join(APP_DATA_DIR, "chemical_cache.sig")
+
+readme_path = os.path.join(APP_DATA_DIR, "README.txt")
+if not os.path.exists(readme_path):
+    try:
+        with open(readme_path, "w", encoding="utf-8") as f:
+            f.write(
+                "LAB Buddy – Backend Data Folder\n\n"
+                "This folder stores local cache files used by LAB Buddy\n"
+                "to enable offline operation and faster searches.\n\n"
+                "⚠ Do not delete or modify files in this folder.\n"
+                "Deleting it may require LAB Buddy to re-download data.\n"
+            )
+    except:
+        pass
+
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and PyInstaller """
