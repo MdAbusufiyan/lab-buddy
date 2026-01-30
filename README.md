@@ -35,6 +35,12 @@ The application is designed to run on low-specification laboratory computers.
 - Windows (precompiled executable provided)
 - Python source code available
 
+## Privacy
+
+- LAB Buddy does not collect, transmit, or store any personal user data.
+- All chemical information is retrieved from PubChem (NIH) and optional data is cached locally on the user's computer solely to enable offline use and faster access.
+
+
 ## Data Source
 Chemical data and structure images are sourced from PubChem (NIH).
 
